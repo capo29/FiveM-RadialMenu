@@ -10,31 +10,57 @@ local isHandcuffedAndWalking = false
 local hasOxygenTankOn = false
 local gangNum = 0
 local cuffStates = {}
-local PlayerData = {}
+local acePermissions = {}
 
-ESX                           = nil
+local function collectAcePermissions()
+    local permissions = {}
+    local seen = {}
 
-Citizen.CreateThread(function()
-	while ESX == nil do
-		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-		Citizen.Wait(0)
-	end
-	
-	while ESX.GetPlayerData().job == nil do
-		Citizen.Wait(10)
-	end
-	
-	PlayerData = ESX.GetPlayerData()
+    local function addPermission(permission)
+        if permission and not seen[permission] then
+            seen[permission] = true
+            permissions[#permissions + 1] = permission
+        end
+    end
+
+    for _, menuConfig in ipairs(rootMenuConfig or {}) do
+        addPermission(menuConfig.acePermission)
+    end
+
+    for _, menuConfig in pairs(newSubMenus or {}) do
+        addPermission(menuConfig.acePermission)
+    end
+
+    return permissions
+end
+
+local function hasAcePermission(permission)
+    if permission == nil then
+        return true
+    end
+
+    return acePermissions[permission] == true
+end
+
+local function requestAcePermissions()
+    TriggerServerEvent("menu:refreshPermissions", collectAcePermissions())
+end
+
+AddEventHandler("onClientResourceStart", function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        requestAcePermissions()
+    end
 end)
 
-RegisterNetEvent('esx:playerLoaded')
-AddEventHandler('esx:playerLoaded', function(xPlayer)
-	PlayerData = xPlayer
-end)
+AddEventHandler("playerSpawned", requestAcePermissions)
 
-RegisterNetEvent('esx:setJob')
-AddEventHandler('esx:setJob', function(job)
-	PlayerData.job = job
+RegisterNetEvent("menu:setPermissions")
+AddEventHandler("menu:setPermissions", function(permissions)
+    if type(permissions) ~= "table" then
+        return
+    end
+
+    acePermissions = permissions
 end)
 
 rootMenuConfig =  {
@@ -46,7 +72,7 @@ rootMenuConfig =  {
             displayName = "Police",
             icon = "#police-vehicle",
             enableMenu = function()
-                return (PlayerData.job.name == 'police' and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
+                return (hasAcePermission("radialmenu.police") and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
             end,
             subMenus = {"general:unseatnearest", "police:runplate", "police:toggleradar"}
         },
@@ -111,8 +137,9 @@ rootMenuConfig =  {
         id = "police-action",
         displayName = "Police",
         icon = "#police-action",
+        acePermission = "radialmenu.police",
         enableMenu = function()
-            return (PlayerData.job.name == 'police' and not isDead)
+            return (hasAcePermission("radialmenu.police") and not isDead)
         end,
         subMenus = {"police:cuff", "police:checklicenses", "police:removeweapons", "police:escort", "police:frisk"}
     },
@@ -120,8 +147,9 @@ rootMenuConfig =  {
         id = "police-vehicle",
         displayName = "Polizei Autochecks",
         icon = "#police-vehicle",
+        acePermission = "radialmenu.police",
         enableMenu = function()
-            return (PlayerData.job.name == 'police' and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
+            return (hasAcePermission("radialmenu.police") and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
         end,
         subMenus = {"police:runplate", "police:toggleradar"}
     },
@@ -129,8 +157,9 @@ rootMenuConfig =  {
         id = "medic",
         displayName = "Medical",
         icon = "#medic",
+        acePermission = "radialmenu.medic",
         enableMenu = function()
-            return (PlayerData.job.name == 'ambulance' and not isDead)
+            return (hasAcePermission("radialmenu.medic") and not isDead)
         end,
         subMenus = {}
     },
@@ -275,49 +304,58 @@ newSubMenus = {
     ['medic:revive'] = {
         title = "Revive",
         icon = "#medic-revive",
-        functionName = "revive"
+        functionName = "revive",
+        acePermission = "radialmenu.medic"
     },
     ['medic:heal'] = {
         title = "Heal",
         icon = "#medic-heal",
-        functionName = "ems:heal"
+        functionName = "ems:heal",
+        acePermission = "radialmenu.medic"
     },
 
     -- Police
     ['police:cuff'] = {
         title = "Menotter",
         icon = "#cuffs-cuff",
-        functionName = "police:cuffFromMenu"
+        functionName = "police:cuffFromMenu",
+        acePermission = "radialmenu.police"
     },
     ['police:checklicenses'] = {
         title = "Vérifier Licences",
         icon = "#police-check-licenses",
-        functionName = "police:checkLicenses"
+        functionName = "police:checkLicenses",
+        acePermission = "radialmenu.police"
     },
     ['police:removeweapons'] = {
         title = "Retirer Licence d'arme",
         icon = "#police-action-remove-weapons",
-        functionName = "police:removeWeapon"
+        functionName = "police:removeWeapon",
+        acePermission = "radialmenu.police"
     },
     ['police:escort'] = {
         title = "Escorter",
         icon = "#police-action-gsr",
-        functionName = "escortPlayer"
+        functionName = "escortPlayer",
+        acePermission = "radialmenu.police"
     },
     ['police:toggleradar'] = {
         title = "Activer Radar",
         icon = "#police-vehicle-radar",
-        functionName = "startSpeedo"
+        functionName = "startSpeedo",
+        acePermission = "radialmenu.police"
     },
     ['police:runplate'] = {
         title = "Rechercher une plaque",
         icon = "#police-vehicle-plate",
-        functionName = "clientcheckLicensePlate"
+        functionName = "clientcheckLicensePlate",
+        acePermission = "radialmenu.police"
     },
     ['police:frisk'] = {
         title = "Fouille",
         icon = "#police-action-frisk",
-        functionName = "police:frisk"
+        functionName = "police:frisk",
+        acePermission = "radialmenu.police"
     },
 
 }

@@ -5,6 +5,8 @@ client_script {
     "client_menu.lua"
 }
 
+server_script "server.lua"
+
 ui_page "html/ui.html"
 
 files {
