@@ -10,7 +10,7 @@ local MAX_MENU_ITEMS = 7
 
 -- Main thread
 Citizen.CreateThread(function()
-    local keyBind = "F6"
+    local keyBind = "M"
     while true do
         Citizen.Wait(0)
         if IsControlPressed(1, keybindControls[keyBind]) and GetLastInputMethod(2) and showMenu then
@@ -39,7 +39,7 @@ Citizen.CreateThread(function()
                             if i % MAX_MENU_ITEMS == 0 and i < (#menuConfig.subMenus - 1) then
                                 previousMenu[MAX_MENU_ITEMS + 1] = {
                                     id = "_more",
-                                    title = "Plus",
+                                    title = "More",
                                     icon = "#more",
                                     items = currentElement
                                 }
@@ -51,7 +51,7 @@ Citizen.CreateThread(function()
                         if #currentElement > 0 then
                             previousMenu[MAX_MENU_ITEMS + 1] = {
                                 id = "_more",
-                                title = "Plus",
+                                title = "More",
                                 icon = "#more",
                                 items = currentElement
                             }
