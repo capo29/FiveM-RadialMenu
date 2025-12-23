@@ -10,31 +10,57 @@ local isHandcuffedAndWalking = false
 local hasOxygenTankOn = false
 local gangNum = 0
 local cuffStates = {}
-local PlayerData = {}
+local acePermissions = {}
 
-ESX                           = nil
+local function collectAcePermissions()
+    local permissions = {}
+    local seen = {}
 
-Citizen.CreateThread(function()
-	while ESX == nil do
-		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-		Citizen.Wait(0)
-	end
-	
-	while ESX.GetPlayerData().job == nil do
-		Citizen.Wait(10)
-	end
-	
-	PlayerData = ESX.GetPlayerData()
+    local function addPermission(permission)
+        if permission and not seen[permission] then
+            seen[permission] = true
+            permissions[#permissions + 1] = permission
+        end
+    end
+
+    for _, menuConfig in ipairs(rootMenuConfig or {}) do
+        addPermission(menuConfig.acePermission)
+    end
+
+    for _, menuConfig in pairs(newSubMenus or {}) do
+        addPermission(menuConfig.acePermission)
+    end
+
+    return permissions
+end
+
+local function hasAcePermission(permission)
+    if permission == nil then
+        return true
+    end
+
+    return acePermissions[permission] == true
+end
+
+local function requestAcePermissions()
+    TriggerServerEvent("menu:refreshPermissions", collectAcePermissions())
+end
+
+AddEventHandler("onClientResourceStart", function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        requestAcePermissions()
+    end
 end)
 
-RegisterNetEvent('esx:playerLoaded')
-AddEventHandler('esx:playerLoaded', function(xPlayer)
-	PlayerData = xPlayer
-end)
+AddEventHandler("playerSpawned", requestAcePermissions)
 
-RegisterNetEvent('esx:setJob')
-AddEventHandler('esx:setJob', function(job)
-	PlayerData.job = job
+RegisterNetEvent("menu:setPermissions")
+AddEventHandler("menu:setPermissions", function(permissions)
+    if type(permissions) ~= "table" then
+        return
+    end
+
+    acePermissions = permissions
 end)
 
 rootMenuConfig =  {
@@ -46,7 +72,7 @@ rootMenuConfig =  {
             displayName = "Police",
             icon = "#police-vehicle",
             enableMenu = function()
-                return (PlayerData.job.name == 'police' and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
+                return (hasAcePermission("radialmenu.police") and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
             end,
             subMenus = {"general:unseatnearest", "police:runplate", "police:toggleradar"}
         },
@@ -54,7 +80,7 @@ rootMenuConfig =  {
     -- Main menu
     {
         id = "inventory",
-        displayName = "Inventaire",
+        displayName = "Inventory",
         icon = "#box",
         functionName = "",
         enableMenu = function()
@@ -63,7 +89,7 @@ rootMenuConfig =  {
     },
     {
         id = "vetement",
-        displayName = "Vêtements",
+        displayName = "Clothing",
         icon = "#tshirt",
         enableMenu = function()
             return not isDead
@@ -72,7 +98,7 @@ rootMenuConfig =  {
     },
     {
         id = "portefeuille",
-        displayName = "Portefeuille",
+        displayName = "Wallet",
         icon = "#id",
         enableMenu = function()
             return not isDead
@@ -99,7 +125,7 @@ rootMenuConfig =  {
     },
     {
         id = "walking",
-        displayName = "Démarches",
+        displayName = "Walking Styles",
         icon = "#walking",
         enableMenu = function()
             return not isDead
@@ -111,17 +137,19 @@ rootMenuConfig =  {
         id = "police-action",
         displayName = "Police",
         icon = "#police-action",
+        acePermission = "radialmenu.police",
         enableMenu = function()
-            return (PlayerData.job.name == 'police' and not isDead)
+            return (hasAcePermission("radialmenu.police") and not isDead)
         end,
-        subMenus = {"police:cuff", "police:checklicenses", "police:removeweapons", "police:escort", "police:frisk"}
+        subMenus = {"police:cuff", "police:drag", "police:putinvehicle", "police:checklicenses", "police:removeweapons", "police:escort", "police:frisk"}
     },
     {
         id = "police-vehicle",
-        displayName = "Polizei Autochecks",
+        displayName = "Police Vehicle",
         icon = "#police-vehicle",
+        acePermission = "radialmenu.police",
         enableMenu = function()
-            return (PlayerData.job.name == 'police' and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
+            return (hasAcePermission("radialmenu.police") and not isDead and IsPedInAnyVehicle(PlayerPedId(), false))
         end,
         subMenus = {"police:runplate", "police:toggleradar"}
     },
@@ -129,14 +157,15 @@ rootMenuConfig =  {
         id = "medic",
         displayName = "Medical",
         icon = "#medic",
+        acePermission = "radialmenu.medic",
         enableMenu = function()
-            return (PlayerData.job.name == 'ambulance' and not isDead)
+            return (hasAcePermission("radialmenu.medic") and not isDead)
         end,
         subMenus = {}
     },
     {
         id = "vehicle",
-        displayName = "Gestion vehicule",
+        displayName = "Vehicle Options",
         icon = "#vehicle-options-vehicle",
         functionName = "veh:options",
         enableMenu = function()
@@ -160,70 +189,70 @@ newSubMenus = {
 
     -- Id Card
     ['portefeuille:idcard'] = {
-        title = "Montrer Carte d'identité",
+        title = "Show ID Card",
         icon = "#id-card",
         functionName = "chatMessage",
         functionParameters =  { "test" }
     },
     ['portefeuille:idcard2'] = {
-        title = "Voir Carte d'identité",
+        title = "View ID Card",
         icon = "#id-card",
         functionName = "escortPlayer"
     },
     ['portefeuille:drivelicence'] = {
-        title = "Montrer Permis",
+        title = "Show Driver License",
         icon = "#car",
         functionName = "escortPlayer"
     },
     ['portefeuille:drivelicence2'] = {
-        title = "Voir Permis",
+        title = "View Driver License",
         icon = "#car",
         functionName = "escortPlayer"
     },
 
     -- Animations
     ['animations:stop'] = {
-        title="Stopper",
+        title="Stop Animation",
         icon="#stop-anim",
         functionName = "e c",
     },
     ['animations:crossarms'] = {
-        title = "Bras croisés",
+        title = "Cross Arms",
         icon = "#animation",
         functionName = "e cop2"
     },   
     ['animations:sit'] = {
-        title = "S'asseoir au sol",
+        title = "Sit on Ground",
         icon = "#animation",
         functionName = "e sit"
     },
     ['animations:sitchair'] = {
-        title = "S'asseoir",
+        title = "Sit on Chair",
         icon = "#animation",
         functionName = "e sitchair"
     },
     ['animations:salute'] = {
-        title = "Salut Militaire",
+        title = "Salute",
         icon = "#animation",
         functionName = "e salute"
     },
     ['animations:surrender'] = {
-        title = "Se rendre",
+        title = "Surrender",
         icon = "#animation",
         functionName = "e surrender"
     },
     ['animations:finger'] = {
-        title = "Doigt d'honneur",
+        title = "Finger",
         icon = "#animation",
         functionName = "e finger"
     },
     ['animations:pushup'] = {
-        title = "Pompe",
+        title = "Pushups",
         icon = "#animation",
         functionName = "e pushup"
     },
     ['animations:hug'] = {
-        title = "Calin",
+        title = "Hug",
         icon = "#animation",
         functionName = "e hug"
     },
@@ -241,7 +270,7 @@ newSubMenus = {
         functionName = "walk brave"
     },
     ['walk:hurry'] = {
-        title = "Presser",
+        title = "Hurry",
         icon = "#animation-hurry",
         functionName = "walk hurry"
     },
@@ -251,17 +280,17 @@ newSubMenus = {
         functionName = "walk alien"
     },
     ['walk:tipsy'] = {
-        title = "Soûl",
+        title = "Tipsy",
         icon = "#animation-tipsy",
         functionName = "walk drunk"
     },
     ['walk:injured'] = {
-        title = "Blesser",
+        title = "Injured",
         icon = "#animation-injured",
         functionName = "walk injured"
     },
     ['walk:tough'] = {
-        title = "Musclé",
+        title = "Tough",
         icon = "#animation-tough",
         functionName = "walk toughguy"
     },
@@ -275,49 +304,70 @@ newSubMenus = {
     ['medic:revive'] = {
         title = "Revive",
         icon = "#medic-revive",
-        functionName = "revive"
+        functionName = "revive",
+        acePermission = "radialmenu.medic"
     },
     ['medic:heal'] = {
         title = "Heal",
         icon = "#medic-heal",
-        functionName = "ems:heal"
+        functionName = "ems:heal",
+        acePermission = "radialmenu.medic"
     },
 
     -- Police
     ['police:cuff'] = {
-        title = "Menotter",
+        title = "Cuff",
         icon = "#cuffs-cuff",
-        functionName = "police:cuffFromMenu"
+        functionName = "police:cuffFromMenu",
+        acePermission = "radialmenu.police"
+    },
+    ['police:drag'] = {
+        title = "Drag",
+        icon = "#general-escort",
+        functionName = "police:dragFromMenu",
+        acePermission = "radialmenu.police"
+    },
+    ['police:putinvehicle'] = {
+        title = "Place in Vehicle",
+        icon = "#general-put-in-veh",
+        functionName = "police:putInVehicleFromMenu",
+        acePermission = "radialmenu.police"
     },
     ['police:checklicenses'] = {
-        title = "Vérifier Licences",
+        title = "Check Licenses",
         icon = "#police-check-licenses",
-        functionName = "police:checkLicenses"
+        functionName = "police:checkLicenses",
+        acePermission = "radialmenu.police"
     },
     ['police:removeweapons'] = {
-        title = "Retirer Licence d'arme",
+        title = "Remove Weapon License",
         icon = "#police-action-remove-weapons",
-        functionName = "police:removeWeapon"
+        functionName = "police:removeWeapon",
+        acePermission = "radialmenu.police"
     },
     ['police:escort'] = {
-        title = "Escorter",
+        title = "Escort",
         icon = "#police-action-gsr",
-        functionName = "escortPlayer"
+        functionName = "escortPlayer",
+        acePermission = "radialmenu.police"
     },
     ['police:toggleradar'] = {
-        title = "Activer Radar",
+        title = "Toggle Radar",
         icon = "#police-vehicle-radar",
-        functionName = "startSpeedo"
+        functionName = "startSpeedo",
+        acePermission = "radialmenu.police"
     },
     ['police:runplate'] = {
-        title = "Rechercher une plaque",
+        title = "Run Plate",
         icon = "#police-vehicle-plate",
-        functionName = "clientcheckLicensePlate"
+        functionName = "clientcheckLicensePlate",
+        acePermission = "radialmenu.police"
     },
     ['police:frisk'] = {
-        title = "Fouille",
+        title = "Frisk",
         icon = "#police-action-frisk",
-        functionName = "police:frisk"
+        functionName = "police:frisk",
+        acePermission = "radialmenu.police"
     },
 
 }

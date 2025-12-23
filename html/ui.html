@@ -42,7 +42,7 @@
             });
             window.addEventListener("keyup", function onEvent(event) {
                 // Close menu when key is released
-                if (event.key === menuKeybind) {
+                if (event.key && menuKeybind && event.key.toUpperCase() === menuKeybind.toUpperCase()) {
                     $.post(`http://${resourceName}/closemenu`, JSON.stringify({}));
                 }
             });
