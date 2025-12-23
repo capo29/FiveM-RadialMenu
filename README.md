@@ -15,20 +15,39 @@ This mod adds the following:
 - This is for the radial menu only and not the other scripts' events which are opening in the video.
 
 ## 🖥️ Usage
-- Press the keybind for the menu (default: "F5") and hold.
+- Press the keybind for the menu (default: "M") and hold.
 - Move the mouse over to the option and click with your left mouse button.
 - This will either do the action you use to do or open another sub menu.
 
 ## ⚙️ Installation
-Add to folder '[esx]'
-Write 'start np-menu' in your server.cfg
+Add to your resources folder.
+Write `start np-menu` (or your resource name) in your server.cfg.
+
+### ACE permissions
+The menu now uses ACE permissions instead of ESX jobs. By default `useAcePermissions` in `config.lua` is `true`; set it to `false` if you want to bypass ACE checks for testing purposes.
+
+- `radialmenu.police` – enables the Police menu and its actions.
+- `radialmenu.medic` – enables the Medical menu and its actions.
+
+Example in `server.cfg`:
+
+```
+add_ace group.police radialmenu.police allow
+add_ace group.ems radialmenu.medic allow
+```
 
 To add your own events or jobs to this make the event you wish into a client event.
 Then write the event name in where you want it to trigger it in the config file.
 
-To add a job check to an option so only certain jobs will see it add the following to the return
-    return (PlayerData.job.name == 'police' and not isDead)
-- Replace 'police' with your desired job.
+To add a permission check to an option so only certain players will see it add the following to the return:
+
+```
+return (hasAcePermission('your.permission') and not isDead)
+```
+- Replace `'your.permission'` with your desired ACE permission.
+
+### Default actions
+- Police items are wired to the following client events: `police:cuffFromMenu`, `police:dragFromMenu`, `police:putInVehicleFromMenu`, `police:checkLicenses`, `police:removeWeapon`, `escortPlayer`, `startSpeedo`, `clientcheckLicensePlate`, and `police:frisk`. These also surface in the **Actions** wheel entry for quicker access when you have the `radialmenu.police` ACE.
 
 ## 🤝 Contributing
 
